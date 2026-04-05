@@ -45,3 +45,19 @@ def test_register_call_counts_calls_between_local_and_foreign_users() -> None:
 
     assert switchboard.get_active_calls_count() == 3
     assert switchboard.get_cross_border_calls_count() == 1
+
+def test_register_call_invalid_format() -> None:
+    switchboard = Switchboard()
+    import pytest
+    with pytest.raises(ValueError):
+        switchboard.register_call("1,Ivan")
+
+def test_register_call_cross_border_logic_extensive() -> None:
+    switchboard = Switchboard()
+
+    switchboard.register_call("1,A,+7111,2,B,+7222")
+    switchboard.register_call("3,C,+1234,4,D,+1555")
+    switchboard.register_call("5,E,+444,6,F,+7333")
+    
+    assert switchboard.get_active_calls_count() == 3
+    assert switchboard.get_cross_border_calls_count() == 1
