@@ -48,16 +48,44 @@ def test_register_call_counts_calls_between_local_and_foreign_users() -> None:
 
 def test_register_call_invalid_format() -> None:
     switchboard = Switchboard()
-    import pytest
     with pytest.raises(ValueError):
         switchboard.register_call("1,Ivan")
 
-def test_register_call_cross_border_logic_extensive() -> None:
+def test_register_call_trims_whitespace_in_parts() -> None:
     switchboard = Switchboard()
 
-    switchboard.register_call("1,A,+7111,2,B,+7222")
-    switchboard.register_call("3,C,+1234,4,D,+1555")
-    switchboard.register_call("5,E,+444,6,F,+7333")
-    
-    assert switchboard.get_active_calls_count() == 3
+    active_call = switchboard.register_call(
+        " 1 , Ivan Ivanov , +79990000000 , 2 , John Smith , +15551234567 "
+    )
+
+    assert isinstance(active_call.caller, LocalUser)
+    assert isinstance(active_call.receiver, ForeignUser)
+    assert active_call.caller.id == 1
+    assert active_call.receiver.id == 2
+    assert active_call.caller.fullname == "Ivan Ivanov"
+    assert active_call.receiver.fullname == "John Smith"
+    assert switchboard.get_active_calls_count() == 1
     assert switchboard.get_cross_border_calls_count() == 1
+
+
+def test_register_call_raises_value_error_on_invalid_user_id() -> None:
+    switchboard = Switchboard()
+
+    with pytest.raises(ValueError):
+        switchboard.register_call(
+            "abc,Ivan Ivanov,+79990000000,2,John Smith,+15551234567"
+        )
+
+
+@pytest.mark.parametrize(
+    "raw_call",
+    [
+        "1, ,+79990000000,2,John Smith,+15551234567",
+        "1,Ivan Ivanov,+79990000000,2,John Smith, ",
+        " ,Ivan Ivanov,+79990000000,2,John Smith,+15551234567",
+    ],
+)
+def test_register_call_business_validation_errors(raw_call: str) -> None:
+    switchboard = Switchboard()
+    with pytest.raises(ValueError):
+        switchboard.register_call(raw_call)

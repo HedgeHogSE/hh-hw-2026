@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.users import User
+from app.users import ForeignUser, LocalUser, User
 
 
 LOCAL_PHONE_PREFIX = "+7"
@@ -23,14 +23,20 @@ class Switchboard:
         self._active_calls: list[ActiveCall] = []
         self._cross_border_count: int = 0
 
+    @staticmethod
+    def _parse_user_id(user_id: str) -> int:
+        user_id_result = user_id.strip()
+        if not user_id_result.isdigit():
+            raise ValueError("Invalid user id")
+        return int(user_id_result)
+
     def _create_user(self, user_id: str, name: str, phone: str) -> User:
-        from app.users.foreign_user import ForeignUser
-        from app.users.local_user import LocalUser
-        
-        user_id_int = int(user_id)
-        if phone.startswith(LOCAL_PHONE_PREFIX):
-            return LocalUser(id=user_id_int, fullname=name, phone=phone)
-        return ForeignUser(id=user_id_int, fullname=name, phone=phone)
+        user_id_int = self._parse_user_id(user_id)
+        fullname = name.strip()
+        phone_stripped = phone.strip()
+        if phone_stripped.startswith(LOCAL_PHONE_PREFIX):
+            return LocalUser(id=user_id_int, fullname=fullname, phone=phone_stripped)
+        return ForeignUser(id=user_id_int, fullname=fullname, phone=phone_stripped)
 
     def register_call(self, raw_call: str) -> ActiveCall:
         '''
